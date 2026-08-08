@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>ワードウルフ Online</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+/* ===== Design Tokens ===== */
+:root {
+  --disp: "Mochiy Pop One", "Hiragino Kaku Gothic ProN", sans-serif;
+  --night: #262a5e;
+  --night2: #1a1c40;
+  --ink: #211a3d;
+  --ink2: #463d6b;
+  --paper: #f7f0dd;
+  --paper2: #ece0c3;
+  --psub: #7a6f54;
+  --gold: #f4b942;
+  --gold2: #e5a52a;
+  --red: #e8504f;
+  --teal: #2fae7f;
+  --blue: #4f74e3;
+  --purple: #9d5fd0;
+  --orange: #ef8a3c;
+  --nsub: #b9bce0;
+  --bd: 3px solid #211a3d;
+  --hs: 0 5px 0 #14112e;
+  --hs-sm: 0 3px 0 #14112e;
+  --r-lg: 18px;
+  --r-md: 12px;
+}
+
+/* ===== Reset ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%; background: var(--night);
+  color: var(--paper);
+  font-family: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+input, select, button, textarea { font-family: inherit; }
+
+/* ===== Animations ===== */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
+@keyframes timerRun { from { width: 100% } to { width: 0% } }
+@keyframes barGrow { from { width: 0 } }
+@keyframes wolfPop { 0% { opacity: 0; transform: scale(.7) rotate(-3deg) } 60% { transform: scale(1.06) rotate(1deg) } 100% { opacity: 1; transform: scale(1) rotate(0) } }
+@keyframes bannerIn { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: none } }
+@keyframes blinkSoft { 0%,100% { opacity: 1 } 50% { opacity: .5 } }
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; animation-delay: 0ms !important; transition-duration: .01ms !important; }
+}
+
+/* ===== Layout ===== */
+#app {
+  min-height: 100vh; display: flex; flex-direction: column;
+  max-width: 420px; margin: 0 auto; position: relative;
+}
+.screen { display: none; flex-direction: column; min-height: 100vh; }
+.screen.active { display: flex; }
+.screen-inner { flex: 1; padding: 24px 20px 32px; display: flex; flex-direction: column; gap: 16px; animation: fadeUp .35s ease both; }
+
+/* ===== Chrome (header bar during game) ===== */
+#game-chrome {
+  display: none; padding: 14px 14px 10px; position: relative; z-index: 5;
+  align-items: center; justify-content: space-between;
+}
+#game-chrome.active { display: flex; }
+.ww-chrome-code {
+  text-align: center; background: var(--paper); border: var(--bd); box-shadow: var(--hs-sm);
+  border-radius: 10px; padding: 4px 16px;
+}
+.ww-chrome-code-label { font-size: 9px; letter-spacing: .2em; color: var(--psub); font-weight: 800; }
+.ww-chrome-code-value { font-size: 15px; font-weight: 900; letter-spacing: .22em; color: var(--ink); }
+
+/* ===== Global Timer ===== */
+#global-timer { padding: 0 14px 6px; display: none; }
+.ww-timer-track { height: 16px; border-radius: 999px; background: var(--night2); border: var(--bd); overflow: hidden; }
+#timer-fill { height: 100%; background: var(--gold); border-right: 3px solid #211a3d; transition: width .25s linear; }
+#timer-fill.danger { background: var(--red); }
+.ww-timer-info { display: flex; justify-content: space-between; margin-top: 5px; font-size: 11px; color: var(--nsub); font-weight: 800; }
+#timer-value { font-weight: 900; color: var(--gold); }
+
+/* ===== Network status ===== */
+.net-status {
+  display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+  background: var(--red); color: #fff; text-align: center; font-size: 13px; font-weight: 900; padding: 10px 16px;
+}
+.net-status.on { display: block; }
+.net-status.warn { background: var(--orange); }
+#storage-warn { position: fixed; bottom: 0; top: auto; }
+
+/* ===== Buttons ===== */
+.ww-btn {
+  cursor: pointer; min-height: 56px; border: var(--bd); border-radius: 14px;
+  font-size: 17px; font-weight: 900; box-shadow: var(--hs); width: 100%;
+  transition: opacity .15s; text-align: center;
+}
+.ww-btn:disabled { opacity: .5; cursor: not-allowed; }
+.ww-btn-gold { background: var(--gold); color: var(--ink); }
+.ww-btn-paper { background: var(--paper); color: var(--ink); }
+.ww-btn-red { background: var(--red); color: #fff; }
+.ww-btn-teal { background: var(--teal); color: #fff; }
+.ww-btn-disabled { background: var(--night2); color: var(--nsub); }
+.ww-btn-sm { min-height: 48px; border-radius: 12px; font-size: 14px; box-shadow: var(--hs-sm); }
+.ww-btn-night { background: var(--night2); color: var(--nsub); }
+
+.ww-btn-back {
+  cursor: pointer; min-height: 44px; min-width: 44px; border-radius: 12px;
+  background: var(--night2); border: var(--bd); box-shadow: var(--hs-sm);
+  color: var(--nsub); font-size: 13px; font-weight: 900;
+}
+
+/* ===== Sound ===== */
+#btn-sound {
+  cursor: pointer; min-width: 44px; min-height: 44px; border-radius: 12px;
+  background: var(--paper); border: var(--bd); box-shadow: var(--hs-sm);
+  color: var(--ink); font-size: 18px; font-weight: 900; position: relative;
+}
+#btn-sound.snd-off { background: var(--night2); color: var(--nsub); }
+#sound-panel {
+  position: absolute; right: 14px; top: 68px; width: 212px;
+  background: var(--paper); border: var(--bd); border-radius: var(--r-md);
+  padding: 14px; box-shadow: var(--hs); display: flex; flex-direction: column; gap: 12px;
+  animation: fadeUp .2s ease both; color: var(--ink); z-index: 10;
+}
+.sound-row { display: flex; justify-content: space-between; align-items: center; }
+.sound-label { font-size: 12px; font-weight: 900; color: var(--psub); }
+.vol-range { width: 110px; accent-color: var(--red); }
+.sound-num { font-size: 12px; font-weight: 900; color: var(--psub); width: 28px; text-align: right; }
+#btn-mute {
+  cursor: pointer; min-height: 40px; border-radius: 10px; border: 2px solid var(--ink);
+  background: var(--paper2); color: var(--ink); font-size: 13px; font-weight: 900;
+}
+
+/* ===== Inputs ===== */
+.ww-input {
+  min-height: 50px; padding: 0 14px; border-radius: 12px; border: var(--bd);
+  background: var(--paper); color: var(--ink); font-size: 16px; font-weight: 700;
+  box-shadow: var(--hs-sm); width: 100%;
+}
+.ww-input-code {
+  font-size: 26px; font-weight: 900; letter-spacing: .28em; text-align: center;
+  min-height: 60px; text-transform: uppercase;
+}
+.ww-select {
+  min-height: 50px; padding: 0 10px; border-radius: 12px; border: var(--bd);
+  background: var(--paper); color: var(--ink); font-size: 16px; font-weight: 700;
+  box-shadow: var(--hs-sm); width: 100%;
+}
+.ww-field { display: flex; flex-direction: column; gap: 6px; }
+.ww-field-label { font-size: 13px; font-weight: 900; color: var(--nsub); }
+.ww-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* ===== Title ===== */
+#screen-title .screen-inner { align-items: center; justify-content: center; gap: 24px; }
+.ww-title-art {
+  position: relative; width: 210px; height: 210px;
+}
+.ww-title-art-circle {
+  position: absolute; inset: 0; border-radius: 50%; border: var(--bd);
+  box-shadow: var(--hs); overflow: hidden; background: var(--night2);
+}
+.ww-title-art-circle img { width: 100%; height: 100%; object-fit: cover; }
+.ww-title-badge {
+  position: absolute; top: -4px; right: -12px;
+  background: var(--red); color: #fff; border: var(--bd); border-radius: 10px;
+  padding: 5px 10px; font-size: 11px; font-weight: 900; transform: rotate(8deg);
+  box-shadow: var(--hs-sm); z-index: 2;
+}
+.ww-title-label {
+  background: var(--paper); border: var(--bd); border-radius: var(--r-lg);
+  box-shadow: var(--hs); padding: 20px 28px; text-align: center; transform: rotate(-1deg);
+}
+.ww-title-label h1 {
+  font-size: 38px; font-weight: 400; font-family: var(--disp);
+  letter-spacing: .04em; line-height: 1.1; color: var(--ink);
+}
+.ww-title-label .sub {
+  font-size: 11px; letter-spacing: .4em; color: var(--psub); margin-top: 8px; font-weight: 800;
+}
+.ww-title-desc {
+  font-size: 13px; color: var(--nsub); line-height: 1.7; text-align: center; font-weight: 700;
+}
+.ww-title-actions { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 280px; }
+.ww-title-link { font-size: 13px; font-weight: 700; color: var(--gold); text-decoration: underline; text-underline-offset: 3px; background: none; border: none; cursor: pointer; }
+
+/* ===== Screen headings ===== */
+.ww-screen-heading {
+  align-self: flex-start; background: var(--paper); border: var(--bd); border-radius: 12px;
+  box-shadow: var(--hs-sm); padding: 8px 18px; font-size: 19px; font-weight: 400;
+  font-family: var(--disp); color: var(--ink); transform: rotate(-1deg);
+}
+.ww-heading-big { font-size: 22px; font-family: var(--disp); text-align: center; }
+.ww-hint { font-size: 12px; color: var(--nsub); text-align: center; font-weight: 700; }
+.ww-hint-sm { font-size: 11px; color: var(--nsub); text-align: center; font-weight: 700; }
+.status-msg { font-size: 13px; color: var(--red); text-align: center; font-weight: 700; min-height: 20px; }
+
+/* ===== Lobby ===== */
+.ww-invite-card {
+  background: var(--paper); border: var(--bd); border-radius: var(--r-lg);
+  padding: 18px; text-align: center; box-shadow: var(--hs); color: var(--ink);
+}
+.ww-invite-label { font-size: 11px; letter-spacing: .25em; color: var(--psub); font-weight: 900; }
+#lobby-code { font-size: 42px; font-weight: 400; font-family: var(--disp); letter-spacing: .14em; margin: 4px 0 10px; display: block; }
+.ww-copy-btn {
+  cursor: pointer; min-height: 44px; padding: 0 20px; border-radius: 999px;
+  border: 2px solid var(--ink); background: var(--paper2); color: var(--ink);
+  font-size: 13px; font-weight: 900; box-shadow: var(--hs-sm);
+}
+#copy-hint { font-size: 12px; display: block; margin-top: 6px; font-weight: 700; color: var(--psub); }
+#copy-hint.done { color: var(--teal); }
+.ww-pills { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.ww-pill {
+  font-size: 12px; font-weight: 900; border: 2px solid var(--ink); border-radius: 999px;
+  padding: 6px 12px; box-shadow: var(--hs-sm);
+}
+.ww-pill-gold { background: var(--gold); color: var(--ink); }
+.ww-pill-red { background: var(--red); color: #fff; }
+.ww-pill-teal { background: var(--teal); color: #fff; }
+
+.ww-players-card {
+  background: var(--paper); border: var(--bd); border-radius: var(--r-lg);
+  padding: 16px; display: flex; flex-direction: column; gap: 8px;
+  box-shadow: var(--hs); color: var(--ink);
+}
+.ww-players-header { display: flex; justify-content: space-between; font-size: 13px; font-weight: 900; color: var(--psub); }
+.ww-player-row {
+  display: flex; align-items: center; gap: 12px; min-height: 50px; padding: 0 10px;
+  border-radius: 12px; background: #fff; border: 2px dashed var(--paper2);
+}
+.ww-player-row.me { background: #eee8d5; border-color: var(--gold); }
+.ww-dot {
+  width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--ink);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 900; color: var(--ink); flex-shrink: 0;
+}
+.ww-dot-sm {
+  width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--ink);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 900; color: var(--ink); flex-shrink: 0;
+}
+.ww-player-name { font-size: 16px; font-weight: 900; flex: 1; }
+.ww-badge {
+  font-size: 10px; font-weight: 900; letter-spacing: .1em; border: 2px solid var(--ink);
+  border-radius: 6px; padding: 3px 8px;
+}
+.ww-badge-host { background: var(--gold); color: var(--ink); }
+.ww-badge-me { background: var(--blue); color: #fff; }
+
+/* ===== Word Distribution ===== */
+.ww-flip-wrap {
+  perspective: 900px; min-height: 240px;
+}
+#flip-card {
+  position: relative; width: 100%; height: 240px;
+  transform-style: preserve-3d; cursor: pointer;
+  transition: transform .55s cubic-bezier(.2,.7,.25,1.05);
+}
+#flip-card.flipped { transform: rotateY(180deg); }
+.ww-card-back, .ww-card-front {
+  position: absolute; inset: 0; backface-visibility: hidden;
+  border-radius: var(--r-lg); border: var(--bd); box-shadow: var(--hs);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  overflow: hidden;
+}
+.ww-card-back {
+  background: var(--red);
+}
+.ww-card-back-inset {
+  position: absolute; inset: 10px; border: 2px dashed rgba(255,255,255,.5);
+  border-radius: 12px; pointer-events: none; z-index: 2;
+}
+.ww-card-back-art {
+  width: 92px; height: 92px; border-radius: 50%; border: var(--bd);
+  overflow: hidden; background: var(--gold);
+}
+.ww-card-back-art img { width: 100%; height: 100%; object-fit: cover; }
+.ww-card-back-label {
+  font-size: 16px; font-weight: 900; letter-spacing: .12em; color: #fff;
+  animation: blinkSoft 2s ease-in-out infinite;
+}
+.ww-card-back-hint { font-size: 11px; color: #ffd9d9; font-weight: 800; }
+
+.ww-card-front {
+  background: var(--paper); transform: rotateY(180deg); color: var(--ink);
+}
+.ww-card-front-inset {
+  position: absolute; inset: 10px; border: 2px dashed rgba(33,26,61,.25); border-radius: 12px;
+}
+.ww-card-front-label { font-size: 12px; letter-spacing: .25em; color: var(--psub); font-weight: 900; }
+#card-word { font-size: 46px; font-weight: 400; font-family: var(--disp); }
+.ww-card-front-sub { font-size: 11px; color: var(--psub); font-weight: 700; }
+
+/* ===== Discuss ===== */
+.ww-peek-card {
+  background: var(--paper); border: var(--bd); border-radius: var(--r-lg);
+  padding: 16px; display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; box-shadow: var(--hs); color: var(--ink);
+}
+.ww-peek-label { font-size: 11px; letter-spacing: .2em; color: var(--psub); font-weight: 900; }
+#discuss-word { font-size: 22px; font-weight: 900; }
+#btn-peek {
+  cursor: pointer; min-height: 44px; padding: 0 16px; border-radius: 999px;
+  border: 2px solid var(--ink); background: var(--paper2); color: var(--ink);
+  font-size: 13px; font-weight: 900; box-shadow: var(--hs-sm);
+}
+.ww-chips-card {
+  background: var(--night2); border: var(--bd); border-radius: var(--r-lg);
+  padding: 14px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+}
+.ww-chip {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 900;
+  background: var(--paper); color: var(--ink); border: 2px solid var(--ink);
+  border-radius: 999px; padding: 5px 12px 5px 5px; box-shadow: var(--hs-sm);
+}
+
+/* ===== Vote ===== */
+.ww-vote-btn {
+  cursor: pointer; display: flex; align-items: center; gap: 12px;
+  min-height: 58px; padding: 0 14px; border-radius: 14px; text-align: left;
+  background: var(--paper); border: 3px solid var(--ink); box-shadow: var(--hs-sm);
+  color: var(--ink); transition: all .15s; width: 100%;
+}
+.ww-vote-btn:disabled { opacity: .4; cursor: not-allowed; }
+.ww-vote-btn.self { opacity: .4; }
+.ww-vote-btn.selected { background: var(--gold); border-color: var(--red); box-shadow: 0 3px 0 var(--red); }
+.ww-vote-name { font-size: 16px; font-weight: 900; flex: 1; }
+.ww-vote-tag { font-size: 12px; font-weight: 900; color: var(--psub); }
+
+/* ===== Reveal ===== */
+.ww-tally-card {
+  background: var(--paper); border: var(--bd); border-radius: var(--r-lg);
+  padding: 16px; display: flex; flex-direction: column; gap: 12px;
+  box-shadow: var(--hs); color: var(--ink);
+}
+.ww-tally-row { display: flex; flex-direction: column; gap: 5px; }
+.ww-tally-info { display: flex; align-items: center; gap: 8px; }
+.ww-tally-name { font-size: 14px; font-weight: 900; flex: 1; }
+.ww-tally-count { font-size: 14px; font-weight: 900; }
+.ww-tally-bar-track { height: 16px; border-radius: 999px; background: var(--paper2); border: 2px solid var(--ink); overflow: hidden; }
+.ww-tally-bar-fill { height: 100%; border-right: 2px solid var(--ink); animation: barGrow .9s ease-out both; }
+.ww-tally-bar-fill.wolf { background: var(--red); }
+.ww-tally-bar-fill.citizen { background: var(--teal); }
+.ww-tally-note { font-size: 11px; color: var(--psub); font-weight: 700; }
+
+#reveal-eliminated {
+  background: var(--red); border: var(--bd); border-radius: var(--r-lg);
+  padding: 18px; text-align: center; animation: wolfPop .5s .9s both;
+  box-shadow: var(--hs); color: #fff; position: relative; overflow: hidden;
+}
+.ww-elim-inset {
+  position: absolute; inset: 8px; border: 2px dashed rgba(255,255,255,.4); border-radius: 12px;
+}
+.ww-elim-label { font-size: 13px; font-weight: 800; color: #ffd9d9; }
+.ww-elim-name { font-size: 28px; font-weight: 400; font-family: var(--disp); margin: 6px 0; }
+.ww-elim-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--ink); border-radius: 999px; padding: 8px 18px;
+  font-size: 15px; font-weight: 900; border: 2px solid #fff;
+}
+.ww-elim-badge.wolf { color: var(--gold); }
+.ww-elim-badge.citizen { color: var(--nsub); }
+.ww-elim-words { font-size: 12px; color: #ffd9d9; margin-top: 10px; font-weight: 700; }
+
+.ww-banner {
+  border: var(--bd); border-radius: var(--r-lg); padding: 16px; text-align: center;
+  animation: bannerIn .6s 1.4s both; box-shadow: var(--hs);
+}
+.ww-banner-citizen { background: var(--teal); color: #fff; }
+.ww-banner-wolf { background: var(--ink); border: 3px solid var(--red); color: #fff; }
+.ww-banner-title { font-size: 24px; font-weight: 400; font-family: var(--disp); }
+.ww-banner-wolf .ww-banner-title { color: var(--red); }
+.ww-banner-sub { font-size: 12px; margin-top: 4px; font-weight: 800; }
+.ww-banner-citizen .ww-banner-sub { color: #d8f5ea; }
+.ww-banner-wolf .ww-banner-sub { color: var(--nsub); }
+
+#reveal-reverse {
+  background: var(--paper); border: 3px dashed var(--ink); border-radius: var(--r-lg);
+  padding: 14px; display: flex; flex-direction: column; gap: 10px;
+  animation: bannerIn .6s 2s both; color: var(--ink);
+}
+.ww-reverse-title { font-size: 14px; font-weight: 900; color: var(--red); }
+.ww-reverse-desc { font-size: 12px; color: var(--psub); line-height: 1.6; font-weight: 700; }
+.ww-reverse-row { display: flex; gap: 8px; }
+#reverse-input {
+  flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border-radius: 10px;
+  border: 2px solid var(--ink); background: #fff; color: var(--ink);
+  font-size: 14px; font-weight: 700;
+}
+#btn-reverse {
+  cursor: pointer; min-height: 44px; padding: 0 16px; border-radius: 10px;
+  border: 2px solid var(--ink); background: var(--gold); color: var(--ink);
+  font-size: 14px; font-weight: 900; box-shadow: var(--hs-sm);
+}
+
+/* ===== Final ===== */
+.ww-final-heading {
+  background: var(--gold); border: var(--bd); border-radius: 12px;
+  box-shadow: var(--hs-sm); padding: 8px 22px; font-size: 22px;
+  font-weight: 400; font-family: var(--disp); color: var(--ink); transform: rotate(-1deg);
+}
+.ww-rank-row {
+  display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 0 14px;
+  border-radius: 14px; background: var(--paper); border: 3px solid var(--ink);
+  box-shadow: var(--hs-sm); color: var(--ink);
+}
+.ww-rank-row.top { background: var(--gold); }
+.ww-rank-medal { font-size: 20px; width: 36px; text-align: center; font-weight: 900; }
+.ww-rank-name { font-size: 16px; font-weight: 900; flex: 1; }
+.ww-rank-pts { font-size: 20px; font-weight: 900; }
+.ww-rank-unit { font-size: 11px; color: var(--psub); }
+.ww-final-actions { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+.ww-final-row { display: flex; gap: 10px; }
+.ww-final-row .ww-btn { flex: 1; }
+
+/* ===== Error ===== */
+.ww-error-icon {
+  width: 88px; height: 88px; border-radius: 50%; background: var(--red);
+  border: var(--bd); box-shadow: var(--hs); display: flex; align-items: center;
+  justify-content: center; font-size: 38px; color: #fff;
+}
+</style>
+</head>
+<body>
+
+<!-- Network status -->
+<div id="net-status" class="net-status"></div>
+<div id="storage-warn" class="net-status warn">共有ストレージ未設定：複数人だと部屋を見失います（Redis の環境変数を設定してください）</div>
+
+<div id="app">
+
+<!-- Game chrome (header when in a room) -->
+<div id="game-chrome">
+  <button id="btn-quit" class="ww-btn-back" type="button">◁ 退出</button>
+  <div class="ww-chrome-code">
+    <div class="ww-chrome-code-label">ROOM</div>
+    <div id="chrome-code" class="ww-chrome-code-value"></div>
+  </div>
+  <div style="position:relative">
+    <button id="btn-sound" type="button" aria-label="サウンド設定" aria-expanded="false">♪</button>
+    <div id="sound-panel" hidden>
+      <label class="sound-row">
+        <span class="sound-label">BGM</span>
+        <input id="vol-bgm" class="vol-range" type="range" min="0" max="100" step="5" value="80">
+        <span id="vol-bgm-num" class="sound-num">80</span>
+      </label>
+      <label class="sound-row">
+        <span class="sound-label">効果音</span>
+        <input id="vol-sfx" class="vol-range" type="range" min="0" max="100" step="5" value="100">
+        <span id="vol-sfx-num" class="sound-num">100</span>
+      </label>
+      <button id="btn-mute" type="button">ミュート</button>
+    </div>
+  </div>
+</div>
+
+<!-- Global Timer -->
+<div id="global-timer">
+  <div class="ww-timer-track"><div id="timer-fill"></div></div>
+  <div class="ww-timer-info"><span id="timer-label"></span><span id="timer-value"></span></div>
+</div>
+
+<!-- 1. Title -->
+<div id="screen-title" class="screen active">
+  <div class="screen-inner" style="align-items:center;justify-content:center;gap:24px">
+    <div class="ww-title-art">
+      <div class="ww-title-art-circle"><img src="assets/hero-art.png" alt="Word Wolf"></div>
+      <div class="ww-title-badge">2〜8人</div>
+    </div>
+    <div class="ww-title-label">
+      <h1>ワードウルフ</h1>
+      <div class="sub">WORD WOLF ONLINE</div>
+    </div>
+    <div class="ww-title-desc">ひとりだけ、ちがうワード。<br>会話の"ズレ"からウルフを見つけ出せ。</div>
+    <div class="ww-title-actions">
+      <button id="btn-go-create" class="ww-btn ww-btn-gold">ルームを作る</button>
+      <button id="btn-go-join" class="ww-btn ww-btn-paper">ルームに参加</button>
+    </div>
+    <a href="wordlist.html" class="ww-title-link">ワードリストを作る・編集する</a>
+  </div>
+</div>
+
+<!-- 2. Create Room -->
+<div id="screen-create" class="screen">
+  <div class="screen-inner">
+    <div class="ww-screen-heading">ルームを作る</div>
+    <div class="ww-field">
+      <span class="ww-field-label">名前</span>
+      <input id="create-name" type="text" placeholder="ニックネーム" maxlength="10" class="ww-input">
+    </div>
+    <div class="ww-grid-2">
+      <div class="ww-field">
+        <span class="ww-field-label">議論時間</span>
+        <select id="create-discuss" class="ww-select">
+          <option value="1">1分</option>
+          <option value="2">2分</option>
+          <option value="3" selected>3分</option>
+          <option value="5">5分</option>
+        </select>
+      </div>
+      <div class="ww-field">
+        <span class="ww-field-label">ウルフ人数</span>
+        <select id="create-wolf-count" class="ww-select">
+          <option value="1" selected>1人</option>
+          <option value="2">2人</option>
+        </select>
+      </div>
+      <div class="ww-field">
+        <span class="ww-field-label">ラウンド数</span>
+        <select id="create-rounds" class="ww-select">
+          <option value="1">1R</option>
+          <option value="3" selected>3R</option>
+          <option value="5">5R</option>
+        </select>
+      </div>
+      <div class="ww-field">
+        <span class="ww-field-label">ルームコード（任意）</span>
+        <input id="create-code" type="text" placeholder="例: WOLF42" maxlength="8" class="ww-input" autocapitalize="characters" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+    <div class="ww-field">
+      <span class="ww-field-label">ワードリストのコード（任意）</span>
+      <input id="create-deck-code" type="text" placeholder="例: 6文字コード" maxlength="8" class="ww-input" autocapitalize="characters" autocomplete="off" spellcheck="false">
+    </div>
+    <a href="wordlist.html" class="ww-title-link" style="align-self:flex-start">ワードリストを作る・編集する →</a>
+    <button id="btn-create-room" class="ww-btn ww-btn-gold" style="margin-top:auto">ルームを作成する</button>
+    <button class="ww-btn ww-btn-sm ww-btn-night ww-btn-back" data-to="title">タイトルに戻る</button>
+    <p id="create-status" class="status-msg"></p>
+  </div>
+</div>
+
+<!-- 3. Join Room -->
+<div id="screen-join" class="screen">
+  <div class="screen-inner">
+    <div class="ww-screen-heading">ルームに参加</div>
+    <div class="ww-field">
+      <span class="ww-field-label">名前</span>
+      <input id="join-name" type="text" placeholder="ニックネーム" maxlength="10" class="ww-input">
+    </div>
+    <div class="ww-field">
+      <span class="ww-field-label">招待コード</span>
+      <input id="join-code" type="text" placeholder="WOLF42" maxlength="8" class="ww-input ww-input-code" autocapitalize="characters" autocomplete="off" spellcheck="false">
+    </div>
+    <button id="btn-join-room" class="ww-btn ww-btn-gold">参加する</button>
+    <div class="ww-hint">ホストから共有された4〜8文字のコードを入力</div>
+    <button class="ww-btn ww-btn-sm ww-btn-night ww-btn-back" data-to="title">タイトルに戻る</button>
+    <p id="join-status" class="status-msg"></p>
+  </div>
+</div>
+
+<!-- 4. Lobby -->
+<div id="screen-lobby" class="screen">
+  <div class="screen-inner">
+    <div class="ww-invite-card">
+      <div class="ww-invite-label">招待コード</div>
+      <span id="lobby-code"></span>
+      <button id="btn-copy-invite" class="ww-copy-btn" type="button">📋 招待リンクをコピー</button>
+      <span id="copy-hint"></span>
+    </div>
+    <div id="lobby-pills" class="ww-pills"></div>
+    <div class="ww-players-card">
+      <div class="ww-players-header"><span>参加者</span><span id="lobby-count"></span></div>
+      <div id="lobby-players"></div>
+    </div>
+    <button id="btn-start-game" class="ww-btn ww-btn-gold" style="margin-top:auto" disabled>ゲームスタート</button>
+    <p id="lobby-status" class="status-msg"></p>
+    <button id="btn-leave-room" class="ww-btn ww-btn-sm ww-btn-night" style="margin-top:4px">ルームを出る</button>
+  </div>
+</div>
+
+<!-- 5. Word Distribution -->
+<div id="screen-word" class="screen">
+  <div class="screen-inner">
+    <div style="text-align:center">
+      <div class="ww-heading-big">ワードを配りました</div>
+      <div class="ww-hint" style="margin-top:6px">そっと確認してください…。まわりに見られないように。</div>
+    </div>
+    <div class="ww-flip-wrap">
+      <div id="flip-card">
+        <div class="ww-card-back">
+          <div class="ww-card-back-inset"></div>
+          <div class="ww-card-back-art"><img src="assets/card-back-art.png" alt=""></div>
+          <div class="ww-card-back-label">タップしてワードを見る</div>
+          <div class="ww-card-back-hint">🔒 あなたにしか見えません</div>
+        </div>
+        <div class="ww-card-front">
+          <div class="ww-card-front-inset"></div>
+          <div class="ww-card-front-label">あなたのワード</div>
+          <div id="card-word"></div>
+          <div class="ww-card-front-sub">市民かウルフかは、最後までわかりません</div>
+          <div class="ww-card-front-sub">タップで裏返す</div>
+        </div>
+      </div>
+    </div>
+    <button id="btn-confirm-word" class="ww-btn ww-btn-gold">ワードを確認した</button>
+    <div id="word-progress" class="ww-hint"></div>
+  </div>
+</div>
+
+<!-- 6. Discuss -->
+<div id="screen-discuss" class="screen">
+  <div class="screen-inner">
+    <div style="text-align:center">
+      <div class="ww-heading-big">議論スタート！</div>
+      <div class="ww-hint" style="margin-top:6px;line-height:1.7">自分のワードについて話そう。<br>ワード名は直接言わないこと。ウソつきは誰だ？</div>
+    </div>
+    <div class="ww-peek-card">
+      <div>
+        <div class="ww-peek-label">あなたのワード</div>
+        <div id="discuss-word" style="font-size:22px;font-weight:900;color:var(--ink)">●●●●</div>
+      </div>
+      <button id="btn-peek" type="button">👁 表示</button>
+    </div>
+    <div id="discuss-players" class="ww-chips-card"></div>
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+      <button id="btn-end-discuss" class="ww-btn ww-btn-red" style="display:none">議論を終えて投票へ（ホスト）</button>
+      <div class="ww-hint-sm">時間切れでも自動で投票にすすみます</div>
+    </div>
+  </div>
+</div>
+
+<!-- 7. Vote -->
+<div id="screen-vote" class="screen">
+  <div class="screen-inner">
+    <div style="text-align:center">
+      <div class="ww-heading-big">運命の投票</div>
+      <div class="ww-hint" style="margin-top:6px">ウルフだと思う1人を選んで投票。票の中身はふせられます。</div>
+    </div>
+    <div id="vote-list" style="display:flex;flex-direction:column;gap:10px"></div>
+    <button id="btn-cast-vote" class="ww-btn ww-btn-disabled" disabled>投票する相手を選んでください</button>
+    <div id="vote-progress" class="ww-hint"></div>
+  </div>
+</div>
+
+<!-- 8. Reveal -->
+<div id="screen-reveal" class="screen">
+  <div class="screen-inner">
+    <div class="ww-heading-big" style="text-align:center">開票の時間です</div>
+    <div id="reveal-tally" class="ww-tally-card"></div>
+    <div id="reveal-eliminated"></div>
+    <div id="reveal-banner" style="display:none"></div>
+    <div id="reveal-reverse" style="display:none">
+      <div class="ww-reverse-title">⚡ 逆転チャンス</div>
+      <div class="ww-reverse-desc">ウルフは市民のワードを当てられれば大逆転勝利！</div>
+      <div class="ww-reverse-row">
+        <input id="reverse-input" type="text" placeholder="市民のワードは…？">
+        <button id="btn-reverse" type="button">回答</button>
+      </div>
+    </div>
+    <button id="btn-next-round" class="ww-btn ww-btn-gold" style="margin-top:auto">次へ</button>
+  </div>
+</div>
+
+<!-- 9. Final -->
+<div id="screen-final" class="screen">
+  <div class="screen-inner">
+    <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px">
+      <div class="ww-final-heading">最終結果</div>
+      <div id="final-rounds" class="ww-hint"></div>
+    </div>
+    <div id="final-ranking" style="display:flex;flex-direction:column;gap:10px"></div>
+    <div class="ww-final-actions">
+      <button id="btn-play-again" class="ww-btn ww-btn-gold">もう一度あそぶ</button>
+      <div class="ww-final-row">
+        <button id="btn-final-lobby" class="ww-btn ww-btn-sm ww-btn-paper">ロビーへ</button>
+        <button id="btn-final-title" class="ww-btn ww-btn-sm ww-btn-paper">タイトルへ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Error -->
+<div id="screen-error" class="screen">
+  <div class="screen-inner" style="align-items:center;justify-content:center;gap:18px;text-align:center">
+    <div class="ww-error-icon">⚠</div>
+    <div class="ww-heading-big">接続が切れました</div>
+    <div class="ww-hint" style="line-height:1.7">通信状態を確認して、もう一度お試しください。<br>ルームの状態は保存されています。</div>
+    <button id="btn-reconnect" class="ww-btn ww-btn-gold" style="max-width:280px">再接続する</button>
+    <button id="btn-error-title" class="ww-btn ww-btn-sm ww-btn-night" style="max-width:280px">タイトルへ戻る</button>
+  </div>
+</div>
+
+</div>
+
+<script src="audio.js"></script>
+<script src="wolf.js"></script>
+</body>
+</html>

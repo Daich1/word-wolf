@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>ワードペア管理 — ワードウルフ Online</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --disp: "Mochiy Pop One", "Hiragino Kaku Gothic ProN", sans-serif;
+  --night: #262a5e; --night2: #1a1c40; --ink: #211a3d;
+  --paper: #f7f0dd; --paper2: #ece0c3; --psub: #7a6f54;
+  --gold: #f4b942; --red: #e8504f; --teal: #2fae7f;
+  --nsub: #b9bce0;
+  --bd: 3px solid #211a3d; --hs: 0 5px 0 #14112e; --hs-sm: 0 3px 0 #14112e;
+  --r-lg: 18px; --r-md: 12px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100vh; background: var(--night); color: var(--paper);
+  font-family: "Zen Maru Gothic", sans-serif; }
+input, button { font-family: inherit; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
+.page { max-width: 420px; margin: 0 auto; padding: 24px 20px 48px; display: flex; flex-direction: column; gap: 14px; animation: fadeUp .35s ease both; }
+.heading { align-self: flex-start; display: inline-block; background: var(--paper); border: var(--bd); border-radius: 12px; box-shadow: var(--hs-sm); padding: 8px 18px; font-size: 19px; font-weight: 400; font-family: var(--disp); color: var(--ink); transform: rotate(-1deg); }
+.desc { font-size: 12px; color: var(--nsub); font-weight: 700; }
+.code-row { display: flex; gap: 8px; align-items: center; }
+.code-input { flex: 1; min-width: 0; min-height: 48px; padding: 0 12px; border-radius: 12px; border: var(--bd); background: var(--paper); color: var(--ink); font-size: 15px; font-weight: 900; letter-spacing: .08em; box-shadow: var(--hs-sm); }
+.code-btn { cursor: pointer; min-height: 48px; padding: 0 14px; border-radius: 12px; border: var(--bd); background: var(--paper2); color: var(--ink); font-size: 13px; font-weight: 900; box-shadow: var(--hs-sm); }
+.col-labels { display: flex; gap: 8px; font-size: 11px; font-weight: 900; padding: 0 4px; }
+.col-c { flex: 1; color: #7fe3c0; }
+.col-w { flex: 1; color: #ff9d9d; }
+.col-x { width: 36px; }
+.pair-row { display: flex; gap: 8px; align-items: center; }
+.pair-c { flex: 1; min-width: 0; min-height: 48px; padding: 0 12px; border-radius: 12px; border: 3px solid var(--teal); background: var(--paper); color: var(--ink); font-size: 15px; font-weight: 700; box-shadow: var(--hs-sm); }
+.pair-w { flex: 1; min-width: 0; min-height: 48px; padding: 0 12px; border-radius: 12px; border: 3px solid var(--red); background: var(--paper); color: var(--ink); font-size: 15px; font-weight: 700; box-shadow: var(--hs-sm); }
+.del-btn { cursor: pointer; width: 36px; min-height: 48px; border-radius: 10px; border: 2px solid var(--ink); background: var(--night2); color: var(--nsub); font-size: 15px; font-weight: 900; }
+.add-btn { cursor: pointer; min-height: 48px; border-radius: 12px; border: 3px dashed var(--nsub); background: transparent; color: var(--nsub); font-size: 14px; font-weight: 900; width: 100%; }
+.save-btn { cursor: pointer; min-height: 56px; border: var(--bd); border-radius: 14px; background: var(--gold); color: var(--ink); font-size: 16px; font-weight: 900; box-shadow: var(--hs); margin-top: auto; width: 100%; }
+.back-btn { cursor: pointer; min-height: 44px; border-radius: 12px; background: var(--night2); border: var(--bd); color: var(--nsub); font-size: 13px; font-weight: 900; box-shadow: var(--hs-sm); width: 100%; }
+.status { font-size: 13px; font-weight: 700; text-align: center; min-height: 20px; }
+.status.ok { color: var(--teal); }
+.status.err { color: var(--red); }
+.result-code { font-size: 13px; font-weight: 900; text-align: center; color: var(--gold); word-break: break-all; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="heading">ワードペア管理</div>
+  <div class="desc">市民ワードとウルフワードのペアを編集。リストコードで差し替え。</div>
+  <div class="code-row">
+    <input id="deck-code" class="code-input" placeholder="既存のリストコード">
+    <button id="btn-load" class="code-btn">読込</button>
+  </div>
+  <div class="col-labels"><span class="col-c">◯ 市民ワード</span><span class="col-w">🐺 ウルフワード</span><span class="col-x"></span></div>
+  <div id="pair-list"></div>
+  <button id="btn-add" class="add-btn">＋ ペアを追加</button>
+  <input id="list-name" class="code-input" placeholder="リスト名（任意）" style="width:100%">
+  <button id="btn-save" class="save-btn">保存してリストコードを発行</button>
+  <p id="status" class="status"></p>
+  <p id="result-code" class="result-code"></p>
+  <a href="./" class="back-btn" style="display:flex;align-items:center;justify-content:center;text-decoration:none">タイトルへ戻る</a>
+</div>
+<script>
+const API = '/api/wordlist';
+const pairList = document.getElementById('pair-list');
+let pairs = [
+  { citizen: 'いぬ', wolf: 'ねこ' },
+  { citizen: 'ラーメン', wolf: 'うどん' },
+  { citizen: '海水浴', wolf: 'プール' },
+];
+
+function render() {
+  pairList.innerHTML = '';
+  pairs.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'pair-row';
+    row.innerHTML =
+      `<input class="pair-c" value="${esc(p.citizen)}" data-i="${i}" data-f="citizen" placeholder="市民ワード">` +
+      `<input class="pair-w" value="${esc(p.wolf)}" data-i="${i}" data-f="wolf" placeholder="ウルフワード">` +
+      `<button class="del-btn" data-i="${i}">✕</button>`;
+    pairList.appendChild(row);
+  });
+  pairList.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', () => {
+      pairs[inp.dataset.i][inp.dataset.f] = inp.value;
+    });
+  });
+  pairList.querySelectorAll('.del-btn').forEach(btn => {
+    btn.addEventListener('click', () => { pairs.splice(btn.dataset.i, 1); render(); });
+  });
+}
+
+function esc(s) { return String(s).replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+function setStatus(msg, ok) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status ' + (ok ? 'ok' : 'err');
+}
+
+document.getElementById('btn-add').addEventListener('click', () => {
+  pairs.push({ citizen: '', wolf: '' });
+  render();
+  pairList.lastElementChild.querySelector('.pair-c').focus();
+});
+
+document.getElementById('btn-load').addEventListener('click', async () => {
+  const code = document.getElementById('deck-code').value.trim().toUpperCase();
+  if (!code) { setStatus('コードを入力してください', false); return; }
+  try {
+    const res = await fetch(API + '?code=' + encodeURIComponent(code), { cache: 'no-store' });
+    const data = await res.json();
+    if (data.error) { setStatus(data.error, false); return; }
+    pairs = data.pairs || [];
+    document.getElementById('list-name').value = data.name || '';
+    render();
+    setStatus(`✔ ${pairs.length}件のペアを読み込みました`, true);
+  } catch (e) { setStatus('通信エラー', false); }
+});
+
+document.getElementById('btn-save').addEventListener('click', async () => {
+  const name = document.getElementById('list-name').value.trim();
+  const code = document.getElementById('deck-code').value.trim().toUpperCase() || null;
+  try {
+    const res = await fetch(API, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'save_deck', code, name, pairs }),
+    });
+    const data = await res.json();
+    if (data.error) { setStatus(data.error, false); return; }
+    document.getElementById('deck-code').value = data.code;
+    document.getElementById('result-code').textContent = `リストコード: ${data.code}（ルーム作成時に入力してください）`;
+    setStatus('✔ 保存しました', true);
+  } catch (e) { setStatus('通信エラー', false); }
+});
+
+render();
+</script>
+</body>
+</html>
